@@ -1,0 +1,103 @@
+class MessagesController < ApplicationController
+    before_action :require_authentication
+    # before_action :set_message, only: [:mark_read]
+
+    # GET /conversations/:conversation_id/messages
+    def index
+        # users can only see their own conversations
+        # conversation = Conversation.where(initiator_id: current_user.id)
+        #                 .or(Conversation.where(assigned_expert_id: current_user.id))
+        #                 .find_by(id: params[:conversation_id])
+        
+        # just kidding -- see Piazza post @65
+        conversation = Conversation.find_by(id: params[:conversation_id])
+
+        unless conversation # conversation not found
+            render json: {
+                error: 'Conversation not found'
+            }, status: :not_found
+            return
+        end
+
+        messages = conversation.messages.order(created_at: :asc)
+        render json: messages.map { |m| message_response(m) }, status: :ok
+    end
+
+    # POST /messages
+    def create
+        conversation = Conversation.where(initiator_id: current_user.id)
+                        .or(Conversation.where(assigned_expert_id: current_user.id))
+                        .find_by(id: params[:conversationId])
+    
+        unless conversation
+            render json: { 
+                error: 'Conversation not found' 
+            }, status: :not_found
+            return
+        end
+
+        # determine sender's role based on user's relationship to conversation
+        sender_role = conversation.initiator_id == current_user.id ? 'initiator' : 'expert'
+
+        message = conversation.messages.new(
+            sender: current_user,
+            sender_role: sender_role,
+            content: params[:content]
+        )
+
+        if message.save
+            render json: message_response(message), status: :created
+        else
+            render json: { errors: message.errors.full_messages }, status: :unprocessable_entity
+        end
+    end
+
+
+    # PUT /messages/:id/read
+    def mark_read
+        message = Message.joins(:conversation)
+                            .where(id: params[:id])
+                            .where(
+                                'conversations.initiator_id = ? OR conversations.assigned_expert_id = ?',
+                                    current_user.id,
+                                    current_user.id
+                            )
+                            .first
+        
+        unless message # message not found
+            render json: { 
+                error: 'Message not found' 
+            }, status: :not_found 
+            return
+        end
+
+        # can't mark own messages as read
+        if message.sender_id == current_user.id
+            render json: { 
+                error: 'Cannot mark your own messages as read' 
+            }, status: :forbidden
+            return
+        end
+
+        message.mark_as_read!
+        render json: {
+            success: true
+        }, status: :ok
+
+    end
+
+    private
+
+    def message_response(message)
+        {
+        id: message.id.to_s,
+        conversationId: message.conversation_id.to_s,
+        senderId: message.sender_id.to_s,
+        senderUsername: message.sender.username,
+        senderRole: message.sender_role,
+        content: message.content,
+        timestamp: message.created_at.iso8601,
+        isRead: message.is_read
+        }
+    end
+end

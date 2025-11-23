@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# don't need these, and they cause errors because the usernames are not unique
+
+# one:
+#   username: MyString
+#   password_digest: MyString
+#   last_active_at: 2025-11-02 22:07:15
+
+# two:
+#   username: MyString
+#   password_digest: MyString
+#   last_active_at: 2025-11-02 22:07:15

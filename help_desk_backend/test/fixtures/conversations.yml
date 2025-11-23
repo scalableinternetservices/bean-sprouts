@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# one:
+#   title: MyString
+#   status: MyString
+#   initiator_id: 
+#   assigned_expert_id: 
+#   last_message_at: 2025-11-03 04:06:50
+
+# two:
+#   title: MyString
+#   status: MyString
+#   initiator_id: 
+#   assigned_expert_id: 
+#   last_message_at: 2025-11-03 04:06:50
