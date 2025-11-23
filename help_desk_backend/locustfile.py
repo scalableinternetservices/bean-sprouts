@@ -251,7 +251,8 @@ class IdleUser(HttpUser, ChatBackend):
         self.last_check_time = None
         username = user_name_generator.generate_username()
         password = username
-        self.user = self.login(username, password) or self.register(username, password)
+        # Try to register first, if it fails (user exists), then login
+        self.user = self.register(username, password) or self.login(username, password)
         if not self.user:
             raise Exception(f"Failed to login or register user {username}")
 
@@ -288,7 +289,8 @@ class ActiveUser(HttpUser, ChatBackend):
         self.my_conversation_ids = []
         username = user_name_generator.generate_username()
         password = username
-        self.user = self.login(username, password) or self.register(username, password)
+        # Try to register first, if it fails (user exists), then login
+        self.user = self.register(username, password) or self.login(username, password)
         if not self.user:
             raise Exception(f"Failed to login or register user {username}")
 
@@ -432,7 +434,8 @@ class ExpertUser(HttpUser, ChatBackend):
         self.claimed_conversations = []
         username = user_name_generator.generate_username()
         password = username
-        self.user = self.login(username, password) or self.register(username, password)
+        # Try to register first, if it fails (user exists), then login
+        self.user = self.register(username, password) or self.login(username, password)
         if not self.user:
             raise Exception(f"Failed to login or register user {username}")
 
