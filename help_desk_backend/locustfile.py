@@ -153,7 +153,7 @@ class ChatBackend():
             json={"username": username, "password": password},
             name="/auth/register"
         )
-        if response.status_code == 201:
+        if response.status_code == 201 or response.status_code == 200:
             data = response.json()
             user_data = data.get("user", {})
             return user_store.store_user(
@@ -252,7 +252,7 @@ class IdleUser(HttpUser, ChatBackend):
         username = user_name_generator.generate_username()
         password = username
         # Try to register first, if it fails (user exists), then login
-        self.user = self.register(username, password) or self.login(username, password)
+        self.user =  self.register(username, password) or self.login(username, password)
         if not self.user:
             raise Exception(f"Failed to login or register user {username}")
 
@@ -294,11 +294,11 @@ class ActiveUser(HttpUser, ChatBackend):
         if not self.user:
             raise Exception(f"Failed to login or register user {username}")
 
-    @task(3)
+    @task(2)
     def create_conversation(self):
         """
         Create a new conversation (help request).
-        Weight: 3 (fairly common action)
+        Weight: 2 (common action)
         """
         response = self.client.post(
             "/conversations",
@@ -316,7 +316,7 @@ class ActiveUser(HttpUser, ChatBackend):
                 self.my_conversation_ids.append(conversation_id)
                 user_store.add_conversation(conversation_id)
 
-    @task(5)
+    @task(4)
     def send_message(self):
         """
         Send a message to an existing conversation.
@@ -336,7 +336,7 @@ class ActiveUser(HttpUser, ChatBackend):
             name="/messages [create]"
         )
 
-    @task(2)
+    @task(3)
     def list_conversations(self):
         """
         List all conversations for the user.
