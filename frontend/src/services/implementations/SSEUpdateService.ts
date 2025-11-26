@@ -1,0 +1,109 @@
+import type {
+  UpdateService,
+  Conversation,
+  Message,
+  ExpertQueue,
+  ConnectionStatus,
+} from '@/types';
+
+interface SSEUpdateServiceConfig {
+  baseUrl: string;
+}
+
+/**
+ * Server-Sent Events implementation of UpdateService
+ * This will be fully implemented in a future step
+ */
+export class SSEUpdateService implements UpdateService {
+  private config: SSEUpdateServiceConfig;
+  private isRunningFlag: boolean = false;
+  private eventSource: EventSource | null = null;
+  private conversationCallbacks: Set<(conversation: Conversation) => void> =
+    new Set();
+  private messageCallbacks: Set<(message: Message) => void> = new Set();
+  private expertQueueCallbacks: Set<(queue: ExpertQueue) => void> = new Set();
+  private connectionStatusCallbacks: Set<(status: ConnectionStatus) => void> =
+    new Set();
+
+  constructor(config: SSEUpdateServiceConfig) {
+    this.config = config;
+  }
+
+  async start(): Promise<void> {
+    if (this.isRunningFlag) {
+      return;
+    }
+
+    this.isRunningFlag = true;
+    this.notifyConnectionStatusChange({ connected: true });
+
+    // TODO: Implement SSE connection in future step
+    console.log('SSEUpdateService started');
+  }
+
+  async stop(): Promise<void> {
+    if (!this.isRunningFlag) {
+      return;
+    }
+
+    this.isRunningFlag = false;
+    this.notifyConnectionStatusChange({ connected: false });
+
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+
+    console.log('SSEUpdateService stopped');
+  }
+
+  isRunning(): boolean {
+    return this.isRunningFlag;
+  }
+
+  // Event handlers
+  onConversationUpdate(callback: (conversation: Conversation) => void): void {
+    this.conversationCallbacks.add(callback);
+  }
+
+  onMessageUpdate(callback: (message: Message) => void): void {
+    this.messageCallbacks.add(callback);
+  }
+
+  onExpertQueueUpdate(callback: (queue: ExpertQueue) => void): void {
+    this.expertQueueCallbacks.add(callback);
+  }
+
+  onConnectionStatusChange(callback: (status: ConnectionStatus) => void): void {
+    this.connectionStatusCallbacks.add(callback);
+  }
+
+  // Remove event handlers
+  offConversationUpdate(callback: (conversation: Conversation) => void): void {
+    this.conversationCallbacks.delete(callback);
+  }
+
+  offMessageUpdate(callback: (message: Message) => void): void {
+    this.messageCallbacks.delete(callback);
+  }
+
+  offExpertQueueUpdate(callback: (queue: ExpertQueue) => void): void {
+    this.expertQueueCallbacks.delete(callback);
+  }
+
+  offConnectionStatusChange(
+    callback: (status: ConnectionStatus) => void
+  ): void {
+    this.connectionStatusCallbacks.delete(callback);
+  }
+
+  private notifyConnectionStatusChange(status: ConnectionStatus): void {
+    this.connectionStatusCallbacks.forEach(callback => {
+      try {
+        callback(status);
+      } catch (error) {
+        console.error('Error in connection status callback:', error);
+      }
+    });
+  }
+}
