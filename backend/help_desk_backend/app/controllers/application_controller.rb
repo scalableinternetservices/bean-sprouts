@@ -1,6 +1,8 @@
 class ApplicationController < ActionController::API
     include ActionController::Cookies
 
+    before_action :detect_locust_request
+
     # authentication methods
     def current_user
         if session[:user_id]
@@ -17,4 +19,16 @@ class ApplicationController < ActionController::API
         render json: { error: 'Authentication required' }, status: :unauthorized unless current_user
     end
 
+    private
+
+    def detect_locust_request
+        ua = request.user_agent.to_s
+
+        if ua.include?("python-requests")
+            Current.might_be_locust_request = true
+        else
+            Current.might_be_locust_request = false
+        end
+    end
 end
+
