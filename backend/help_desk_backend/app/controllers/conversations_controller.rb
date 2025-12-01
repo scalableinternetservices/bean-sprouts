@@ -33,6 +33,10 @@ class ConversationsController < ApplicationController
         conversation = current_user.conversations_as_initiator.new(conversation_params)
 
         if conversation.save
+            # Try to auto-assign an expert using the LLM. If this fails for any reason,
+            # we fall back to the normal "unassigned / waiting" flow.
+            AutoExpertAssigner.call(conversation)
+
             render json: conversation_response(conversation), status: :created
         else
             render json: {

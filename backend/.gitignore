@@ -1,5 +1,6 @@
 
 # Elastic Beanstalk Files
+.bundle/
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
