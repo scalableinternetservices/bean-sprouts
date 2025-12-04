@@ -28,10 +28,7 @@ class AutoExpertAssigner
     expert =
       if expert_id
         User.find_by(id: expert_id)
-      else
-        # Fallback: if we couldn't parse a valid expert_id from the LLM,
-        # just choose the first eligible expert.
-        experts.first
+      # If no expert_id, expert will be nil (conversation stays unassigned)
       end
 
     return unless expert
@@ -58,9 +55,12 @@ class AutoExpertAssigner
   def build_system_prompt
     <<~PROMPT.strip
       You are an expert router. Your job is to look at a user's question and a list of experts
-      (each with an id, username, and bio) and pick the single best expert to answer the question.
+      (each with an id, username, and bio) and pick the best expert to answer the question.
 
-      Respond with ONLY the integer expert_id (for example: 12). Do not include any other text.
+      If one or more experts are a good match, respond with ONLY the integer expert_id (for example: 12).
+      If NONE of the experts are a good match for the question, respond with ONLY the word: NONE
+
+      Do not include any other text in your response.
     PROMPT
   end
 
@@ -82,11 +82,15 @@ class AutoExpertAssigner
 
     lines << ""
     lines << "Based on BOTH the bios and the knowledge base links, which expert_id is the best match for this question?"
+    lines << "If none of these experts are a good match, respond with: NONE"
     lines.join("\n")
   end
 
   def parse_expert_id(output_text, allowed_ids)
     return nil if output_text.nil?
+
+    # Check if LLM explicitly said no match
+    return nil if output_text.to_s.strip.match?(/\A(NONE|none|None)\z/i)
 
     match = output_text.to_s.scan(/\d+/).first
     return nil unless match
