@@ -25,11 +25,22 @@ class User < ApplicationRecord
             # and error messages can be viewed in user.errors.full_messages
     validates   :username,
                 presence: true, # username cannot be blank or nil; must have a value
-                uniqueness: { case_sensitive: false },  # users cannot have the same username, regardless of case
-                length: { minimum: 3, maximum: 50 }     # username must be at least 3 characters and at most 50 characters
+                uniqueness: {
+                    case_sensitive: false,
+                    message: "this username already exists"
+                },  # users cannot have the same username, regardless of case
+                length: {
+                    minimum: 3,
+                    maximum: 50,
+                    too_short: "must be at least 3 characters",
+                    too_long: "must be at most 50 characters"
+                }     # username must be at least 3 characters and at most 50 characters
     
     validates   :password,
-                length: { minimum: 6 },
+                length: {
+                    minimum: 6,
+                    message: "must be at least 6 characters long"
+                },
                 if: -> { new_record? || !password.nil? }    # validate password length only when creating a new user 
                                                             # or user is providing a password (including updates)
 
