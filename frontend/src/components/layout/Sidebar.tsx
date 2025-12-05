@@ -65,9 +65,8 @@ export default function Sidebar({
         {sortedConversations.map(conv => (
           <Card
             key={conv.id}
-            className={`cursor-pointer pt-1 pb-0 ${
-              conv.id === selectedConversationId ? 'border-blue-500' : ''
-            }`}
+            className={`cursor-pointer pt-1 pb-0 ${conv.id === selectedConversationId ? 'border-blue-500' : ''
+              }`}
             onClick={() => onConversationSelect(conv.id)}
           >
             <CardHeader className="px-0">
@@ -75,10 +74,14 @@ export default function Sidebar({
                 <CardTitle className="text-sm break-words text-left">
                   {conv.title}
                 </CardTitle>
+                {conv.summary && (
+                  <p className="text-xs text-muted-foreground line-clamp-3">
+                    {conv.summary}
+                  </p>
+                )}
                 <span
-                  className={`text-xs py-0.5 ${
-                    conv.assignedExpertId ? '' : 'opacity-70'
-                  }`}
+                  className={`text-xs py-0.5 ${conv.assignedExpertId ? '' : 'opacity-70'
+                    }`}
                 >
                   {conv.assignedExpertId
                     ? `Assigned Expert: ${conv.assignedExpertUsername || conv.assignedExpertId}`
@@ -104,9 +107,16 @@ export default function Sidebar({
               className="px-1"
               onClick={() => onConversationSelect(conv.id)}
             >
-              <CardTitle className="text-sm break-words text-left">
-                {conv.title}
-              </CardTitle>
+              <div className="text-left space-y-2">
+                <CardTitle className="text-sm break-words text-left">
+                  {conv.title}
+                </CardTitle>
+                {conv.summary && (
+                  <p className="text-xs text-muted-foreground line-clamp-3">
+                    {conv.summary}
+                  </p>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="flex gap-2">
               <Button
@@ -132,16 +142,20 @@ export default function Sidebar({
         {myConversations.map(conv => (
           <Card
             key={conv.id}
-            className={`cursor-pointer py-1 mb-2 ${
-              conv.id === selectedConversationId ? 'border-blue-500' : ''
-            }`}
+            className={`cursor-pointer py-1 mb-2 ${conv.id === selectedConversationId ? 'border-blue-500' : ''
+              }`}
             onClick={() => onConversationSelect(conv.id)}
           >
             <CardHeader className="px-1">
-              <div className="space-y-2">
+              <div className="text-left space-y-2">
                 <CardTitle className="text-sm break-words text-left">
                   {conv.title}
                 </CardTitle>
+                {conv.summary && (
+                  <p className="text-xs text-muted-foreground line-clamp-3">
+                    {conv.summary}
+                  </p>
+                )}
               </div>
             </CardHeader>
             <CardContent className="flex gap-2">

@@ -32,6 +32,7 @@
 export interface Conversation {
   id: string;
   title: string;
+  summary?: string;
   status: 'waiting' | 'active' | 'resolved';
   questionerId: string;
   questionerUsername: string;
