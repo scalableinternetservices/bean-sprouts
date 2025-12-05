@@ -46,7 +46,11 @@ export class ApiAuthService implements AuthService {
 
       // 5. Handle non-ok responses by throwing an error with status and message
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.errors
+          ? (Array.isArray(errorData.errors) ? errorData.errors.join(', ') : errorData.errors)
+          : errorData.error || response.statusText;
+        throw new Error(errorMessage);
       }
 
       // 6. Return the parsed JSON response

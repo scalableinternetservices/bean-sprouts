@@ -204,10 +204,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
           prev.map(conv =>
             conv.id === conversationId
               ? {
-                  ...conv,
-                  lastMessageAt: newMessage.timestamp,
-                  updatedAt: newMessage.timestamp,
-                }
+                ...conv,
+                lastMessageAt: newMessage.timestamp,
+                updatedAt: newMessage.timestamp,
+              }
               : conv
           )
         );
@@ -285,12 +285,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
           prev.map(conv =>
             conv.id === conversationId
               ? {
-                  ...conv,
-                  assignedExpertId: user?.id,
-                  assignedExpertUsername: user?.username,
-                  status: 'active',
-                  updatedAt: new Date().toISOString(),
-                }
+                ...conv,
+                assignedExpertId: user?.id,
+                assignedExpertUsername: user?.username,
+                status: 'active',
+                updatedAt: new Date().toISOString(),
+              }
               : conv
           )
         );
@@ -322,12 +322,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
           prev.map(conv =>
             conv.id === conversationId
               ? {
-                  ...conv,
-                  assignedExpertId: undefined,
-                  assignedExpertUsername: undefined,
-                  status: 'waiting',
-                  updatedAt: new Date().toISOString(),
-                }
+                ...conv,
+                assignedExpertId: undefined,
+                assignedExpertUsername: undefined,
+                status: 'waiting',
+                updatedAt: new Date().toISOString(),
+              }
               : conv
           )
         );
@@ -360,10 +360,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
           prev.map(conv =>
             conv.id === conversationId
               ? {
-                  ...conv,
-                  status: 'resolved',
-                  updatedAt: new Date().toISOString(),
-                }
+                ...conv,
+                status: 'resolved',
+                updatedAt: new Date().toISOString(),
+              }
               : conv
           )
         );
@@ -443,6 +443,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     };
 
     const handleMessageUpdate = (message: Message) => {
+      // Skip messages from current user (already added optimistically by sendMessage)
+      if (message.senderId === user?.id) {
+        return;
+      }
+
       setMessages(prev => {
         const existingMessages = prev[message.conversationId] || [];
 

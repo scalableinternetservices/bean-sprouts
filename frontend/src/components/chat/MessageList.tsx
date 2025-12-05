@@ -30,7 +30,7 @@ export default function MessageList({ messages, mode }: MessageListProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-left">{message.content}</p>
+            <p className="text-left whitespace-pre-wrap">{message.content}</p>
           </CardContent>
         </Card>
       ))}

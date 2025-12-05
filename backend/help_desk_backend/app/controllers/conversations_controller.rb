@@ -33,6 +33,10 @@ class ConversationsController < ApplicationController
         conversation = current_user.conversations_as_initiator.new(conversation_params)
 
         if conversation.save
+            # Try to auto-assign an expert using the LLM. If this fails for any reason,
+            # we fall back to the normal "unassigned / waiting" flow.
+            AutoExpertAssigner.call(conversation)
+
             render json: conversation_response(conversation), status: :created
         else
             render json: {
@@ -51,6 +55,7 @@ class ConversationsController < ApplicationController
         {
             id: conversation.id.to_s,
             title: conversation.title,
+            summary: conversation.summary || first_message_excerpt(conversation),
             status: conversation.status,
             questionerId: conversation.initiator_id.to_s,
             questionerUsername: conversation.initiator.username,
@@ -61,6 +66,11 @@ class ConversationsController < ApplicationController
             lastMessageAt: conversation.last_message_at&.iso8601,
             unreadCount: unread_count_for(conversation)
         }
+    end
+
+    def first_message_excerpt(conversation)
+      first_msg = conversation.messages.order(created_at: :asc).first
+      first_msg&.content&.truncate(100) || "No messages yet"
     end
 
     def unread_count_for(conversation)

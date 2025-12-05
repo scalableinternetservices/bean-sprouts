@@ -88,6 +88,11 @@ export default function ExpertQueueManager({
                         <h4 className="font-medium text-sm truncate">
                           {conversation.title}
                         </h4>
+                        {conversation.summary && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {conversation.summary}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant={getPriorityColor(conversation.createdAt)}
@@ -158,6 +163,11 @@ export default function ExpertQueueManager({
                         <h4 className="font-medium text-sm truncate">
                           {conversation.title}
                         </h4>
+                        {conversation.summary && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {conversation.summary}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="secondary">Active</Badge>
                           <span className="text-xs text-gray-500">

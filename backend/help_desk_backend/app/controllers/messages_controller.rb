@@ -47,6 +47,13 @@ class MessagesController < ApplicationController
 
         if message.save
             render json: message_response(message), status: :created
+
+            # Trigger auto-FAQ responder (only on first message from initiator)
+            AutoFaqResponder.call(conversation, message)
+
+            # Trigger summarizer (it decides internally whether to update)
+            # Updates at: 3 messages (initial), 8/13/18/23... (incremental), resolved (final)
+            ConversationSummarizer.call(conversation)
         else
             render json: { errors: message.errors.full_messages }, status: :unprocessable_entity
         end

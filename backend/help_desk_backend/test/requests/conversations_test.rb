@@ -101,4 +101,71 @@ class ConversationsTest < ActionDispatch::IntegrationTest
     assert_equal @user.username, response_data["questionerUsername"]
     assert_nil response_data["assignedExpertUsername"]
   end
+
+  test "POST /conversations auto-assigns an expert when experts with bios exist" do
+    expert_user1 = User.create!(username: "expert_one", password: "password123")
+    expert_user1.create_expert_profile!(
+      bio: "I specialize in math and algorithms.",
+      knowledge_base_links: ["https://example.com/math"]
+    )
+
+    expert_user2 = User.create!(username: "expert_two", password: "password123")
+    expert_user2.create_expert_profile!(
+      bio: "I focus on cooking and recipes.",
+      knowledge_base_links: ["https://example.com/cooking"]
+    )
+
+    post "/conversations",
+         params: { title: "How do I compute eigenvalues?" },
+         headers: { "Authorization" => "Bearer #{@token}" }
+
+    assert_response :created
+    response_data = JSON.parse(response.body)
+
+    conversation = Conversation.find(response_data["id"])
+
+    # AutoExpertAssigner should assign some expert (we don't rely on LLM specifics here),
+    # and an ExpertAssignment should be created for that expert.
+    refute_nil conversation.assigned_expert_id
+
+    assignment = ExpertAssignment.find_by(conversation: conversation, expert_id: conversation.assigned_expert_id)
+    assert_not_nil assignment
+    assert_equal "active", assignment.status
+  end
+
+  test "POST /conversations leaves conversation unassigned when no experts exist" do
+    post "/conversations",
+         params: { title: "Is anyone there?" },
+         headers: { "Authorization" => "Bearer #{@token}" }
+
+    assert_response :created
+    response_data = JSON.parse(response.body)
+
+    conversation = Conversation.find(response_data["id"])
+    assert_nil conversation.assigned_expert_id
+
+    assignments = ExpertAssignment.where(conversation: conversation)
+    assert_equal 0, assignments.count
+  end
+
+  test "POST /conversations leaves conversation unassigned when experts have blank bios" do
+    expert_user = User.create!(username: "expert_no_bio", password: "password123")
+    expert_user.create_expert_profile!(
+      bio: "",
+      knowledge_base_links: ["https://example.com/empty-bio"]
+    )
+
+    post "/conversations",
+         params: { title: "Question but experts have no bios" },
+         headers: { "Authorization" => "Bearer #{@token}" }
+
+    assert_response :created
+    response_data = JSON.parse(response.body)
+
+    conversation = Conversation.find(response_data["id"])
+    assert_nil conversation.assigned_expert_id
+
+    assignments = ExpertAssignment.where(conversation: conversation)
+    assert_equal 0, assignments.count
+  end
 end
