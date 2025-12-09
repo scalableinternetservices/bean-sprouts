@@ -55,3 +55,34 @@ rails
 raild db:reset
 rails db:reset
 exit
+raild db:reset
+rails db:reset
+ls
+cd help_desk_backend/
+rails db:reset
+ALLOW_BEDROCK_CALL = true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+rails db:migrate
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+rails db:migrate
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+bin/rails generate migration AddSummaryUpdatedAtToConversations summary_updated_at:datetime
+bin/rails generate migration AddSummaryUpdatedAtToConversations summary_updated_at:datetime
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+rails db:migrate
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+exit
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+ls
+cd help_desk_backend/
+ALLOW_BEDROCK_CALL=true rails server -b 0.0.0.0 -p 3000
+exitr
+exit
