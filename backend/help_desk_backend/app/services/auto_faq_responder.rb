@@ -1,3 +1,5 @@
+require 'digest'
+
 class AutoFaqResponder
   UNABLE_MARKER = "UNABLE"
 
@@ -14,7 +16,7 @@ class AutoFaqResponder
   def call
     return unless should_trigger?
 
-    faq_data = fetch_faq_content
+    faq_data = cached_faq_content
     return if faq_data.blank?
 
     answer = get_llm_answer(faq_data[:content])
@@ -64,10 +66,67 @@ class AutoFaqResponder
 
     return nil if contents.empty?
 
+    full_content = contents.join("\n\n")
+    summary = summarize_faq_content(full_content)
+
     {
-      content: contents.join("\n\n"),
+      # Fall back to full content if summarization fails for any reason
+      content: summary.presence || full_content,
       urls: successful_urls
     }
+  end
+
+  # Cache fetched FAQ content per expert + KB links fingerprint so we don't
+  # re-scrape the same URLs on every auto-FAQ trigger.
+  def cached_faq_content
+    expert_profile = @conversation.assigned_expert.expert_profile
+    urls = Array(expert_profile.knowledge_base_links).reject(&:blank?)
+    return nil if urls.empty?
+
+    links_fingerprint = Digest::SHA256.hexdigest(urls.join("|"))[0, 16]
+    cache_key = "auto_faq:faq_content:expert:#{expert_profile.user_id}:#{links_fingerprint}"
+
+    Rails.cache.fetch(cache_key, expires_in: 12.hours) do
+      Rails.logger.info("[AUTO_FAQ CACHE MISS] Fetching KB content for expert #{expert_profile.user_id}")
+      fetch_faq_content
+    end
+  end
+
+  # Use the LLM once per expert/KB-links fingerprint to condense the raw
+  # scraped content into a shorter summary we can reuse for all auto-FAQ calls.
+  def summarize_faq_content(full_content)
+    system_prompt = <<~PROMPT.strip
+      You are summarizing technical documentation for use by a separate FAQ bot.
+      Your job is to extract the key facts, steps, configuration details, and constraints
+      from the content and condense them into a concise reference.
+
+      Rules:
+      - Do NOT add any information that is not present in the original text.
+      - Prefer bullet points or short paragraphs.
+      - Keep it relatively short but information-dense.
+    PROMPT
+
+    user_prompt = <<~PROMPT.strip
+      Here is documentation / knowledge base content:
+
+      #{full_content}
+
+      ---
+
+      Summarize this into a compact reference that another model can later use
+      to answer user questions. Focus on preserving important details and steps,
+      not on being conversational.
+    PROMPT
+
+    result = @bedrock_client.call(
+      system_prompt: system_prompt,
+      user_prompt: user_prompt
+    )
+
+    result[:output_text]&.strip
+  rescue StandardError => e
+    Rails.logger.error("AutoFaqResponder KB summarization failed: #{e.class}: #{e.message}")
+    nil
   end
 
   def get_llm_answer(faq_content)
