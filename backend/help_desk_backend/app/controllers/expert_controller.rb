@@ -120,12 +120,16 @@ class ExpertController < ApplicationController
 
     # GET /expert/assignments/history
     def assignments_history
-        
-        assignments = ExpertAssignment.where(expert_id: current_user.id)
-                                        .order(assigned_at: :desc)
-        
+        cache_key = "expert:assignments:history:expert:#{current_user.id}"
+
+        assignments = Rails.cache.fetch(cache_key, expires_in: 2.minutes) do
+            Rails.logger.info("[CACHE MISS] Loading assignments from DB for expert #{current_user.id}")
+            ExpertAssignment.where(expert_id: current_user.id)
+                            .order(assigned_at: :desc)
+                            .to_a
+        end
+
         render json: assignments.map { |a| assignment_response(a) }, status: :ok
-    
     end
 
     private
