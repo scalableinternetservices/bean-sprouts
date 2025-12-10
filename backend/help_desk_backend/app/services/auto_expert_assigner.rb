@@ -48,8 +48,13 @@ class AutoExpertAssigner
   private
 
   def eligible_experts
-    User.joins(:expert_profile)
-        .where.not(expert_profiles: { bio: [nil, ""] })
+    Rails.cache.fetch("auto_assign:eligible_experts", expires_in: 5.minutes) do
+      Rails.logger.info("[AUTO_ASSIGN CACHE MISS] Loading eligible experts from DB")
+
+      User.joins(:expert_profile)
+          .where.not(expert_profiles: { bio: [nil, ""] })
+          .to_a
+    end
   end
 
   def build_system_prompt
