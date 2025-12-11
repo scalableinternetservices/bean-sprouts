@@ -11,6 +11,10 @@ class ApplicationController < ActionController::API
             token = request.headers['Authorization'].split(' ').last
             decoded = JwtService.decode(token)  # use JwtService
             @current_user = User.find_by(id: decoded[:user_id]) if decoded
+        elsif params[:token]
+            # Support JWT token in query params for SSE (EventSource doesn't support headers)
+            decoded = JwtService.decode(params[:token])
+            @current_user = User.find_by(id: decoded[:user_id]) if decoded
         end
         @current_user
     end

@@ -34,6 +34,9 @@ Rails.application.routes.draw do
   get '/api/conversations/updates', to: 'updates#conversations'
   get '/api/messages/updates', to: 'updates#messages'
   get '/api/expert-queue/updates', to: 'updates#expert_queue'
+
+  # SSE streaming route
+  get '/api/updates/stream', to: 'updates#stream'
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

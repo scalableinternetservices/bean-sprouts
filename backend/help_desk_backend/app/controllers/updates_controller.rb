@@ -1,4 +1,6 @@
 class UpdatesController < ApplicationController
+    include ActionController::Live
+
     before_action :require_authentication
 
     # GET /api/conversations/updates
@@ -120,7 +122,70 @@ class UpdatesController < ApplicationController
             waitingConversations: waiting.map {|c| conversation_response(c) },
             assignedConversations: assigned.map {|c| conversation_response(c) }
         }], status: :ok
-    
+
+    end
+
+    # GET /api/updates/stream - SSE endpoint for real-time updates
+    def stream
+        Rails.logger.info "[SSE] Stream started for user: #{current_user.username} (ID: #{current_user.id})"
+
+        response.headers['Content-Type'] = 'text/event-stream'
+        response.headers['Cache-Control'] = 'no-cache'
+        response.headers['X-Accel-Buffering'] = 'no' # Disable nginx buffering
+
+        last_check = Time.current
+
+        begin
+            loop do
+                # Capture current time before checks to avoid missing updates during sleep
+                current_time = Time.current
+
+                # Wrap database queries in a block to release connection after use
+                ActiveRecord::Base.connection_pool.with_connection do
+                    # Check for conversation updates
+                    conversation_updates = get_conversation_updates_since(current_user, last_check)
+                    if conversation_updates.any?
+                        Rails.logger.info "[SSE] Found #{conversation_updates.count} conversation updates"
+                    end
+                    conversation_updates.each do |conv|
+                        write_sse_event('conversation-update', conversation_response(conv))
+                    end
+
+                    # Check for message updates
+                    message_updates = get_message_updates_since(current_user, last_check)
+                    if message_updates.any?
+                        Rails.logger.info "[SSE] Found #{message_updates.count} message updates for user #{current_user.id}"
+                        message_updates.each do |msg|
+                            Rails.logger.info "[SSE] Message ID: #{msg.id}, Content: #{msg.content.truncate(50)}, Sender: #{msg.sender_id}"
+                        end
+                    end
+                    message_updates.each do |msg|
+                        write_sse_event('message-update', message_response(msg))
+                    end
+
+                    # Check expert queue updates (if expert)
+                    if current_user.expert?
+                        queue_update = get_expert_queue_updates_since(current_user, last_check)
+                        if queue_update
+                            write_sse_event('expert-queue-update', queue_update)
+                        end
+                    end
+                end
+
+                # Update last_check to current time (captures all updates checked in this iteration)
+                last_check = current_time
+
+                # Send heartbeat
+                write_sse_event('heartbeat', {timestamp: Time.current.iso8601})
+
+                sleep 2 # Poll DB every 2 seconds
+            end
+        rescue IOError
+            # Client disconnected
+            Rails.logger.info "SSE client disconnected: #{current_user.username}"
+        ensure
+            response.stream.close rescue nil
+        end
     end
 
 
@@ -168,5 +233,52 @@ class UpdatesController < ApplicationController
         isRead: message.is_read
         }
     end
-    
+
+    def write_sse_event(event_name, data)
+        response.stream.write("event: #{event_name}\n")
+        response.stream.write("data: #{data.to_json}\n\n")
+        # ActionController::Live::Buffer doesn't support flush, writes are auto-flushed
+    rescue IOError => e
+        # Client disconnected
+        Rails.logger.debug "SSE write failed: #{e.message}"
+        raise
+    end
+
+    def get_conversation_updates_since(user, since_time)
+        Conversation.where(initiator_id: user.id)
+                   .or(Conversation.where(assigned_expert_id: user.id))
+                   .where('updated_at > ?', since_time)
+                   .order(updated_at: :desc)
+    end
+
+    def get_message_updates_since(user, since_time)
+        user_conversation_ids = Conversation.where(initiator_id: user.id)
+                                           .or(Conversation.where(assigned_expert_id: user.id))
+                                           .pluck(:id)
+
+        Message.where(conversation_id: user_conversation_ids)
+              .where('created_at > ?', since_time)
+              .order(created_at: :asc)
+    end
+
+    def get_expert_queue_updates_since(user, since_time)
+        waiting = Conversation.where(status: 'waiting')
+                             .where('updated_at > ?', since_time)
+                             .order(created_at: :asc)
+
+        assigned = Conversation.where(assigned_expert_id: user.id)
+                              .where(status: 'active')
+                              .where('updated_at > ?', since_time)
+                              .order(last_message_at: :desc)
+
+        if waiting.any? || assigned.any?
+            {
+                waitingConversations: waiting.map {|c| conversation_response(c) },
+                assignedConversations: assigned.map {|c| conversation_response(c) }
+            }
+        else
+            nil
+        end
+    end
+
 end
