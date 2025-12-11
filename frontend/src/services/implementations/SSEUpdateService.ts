@@ -33,19 +33,13 @@ export class SSEUpdateService implements UpdateService {
   }
 
   async start(): Promise<void> {
-    console.log('[SSE] start() called, isRunning:', this.isRunningFlag);
-
     if (this.isRunningFlag) {
-      console.log('[SSE] Already running, skipping start');
       return;
     }
 
     this.isRunningFlag = true;
 
-    // Get auth token
     const token = this.tokenManager.getToken();
-    console.log('[SSE] Auth token available:', !!token);
-
     if (!token) {
       console.error('SSEUpdateService: No auth token available');
       this.notifyConnectionStatusChange({
@@ -55,19 +49,16 @@ export class SSEUpdateService implements UpdateService {
       return;
     }
 
-    // Create SSE connection with auth token in query param
     const url = `${this.config.baseUrl}/api/updates/stream?token=${encodeURIComponent(token)}`;
-    console.log('[SSE] Connecting to:', url.replace(/token=[^&]+/, 'token=REDACTED'));
 
     try {
       this.eventSource = new EventSource(url, {
-        withCredentials: true  // Send cookies too
+        withCredentials: true
       });
 
       this.setupEventListeners();
-      console.log('[SSE] SSEUpdateService started, waiting for connection...');
     } catch (error) {
-      console.error('[SSE] Failed to create EventSource:', error);
+      console.error('SSEUpdateService: Failed to create connection:', error);
       this.notifyConnectionStatusChange({
         connected: false,
         error: error instanceof Error ? error.message : 'Connection failed'
@@ -87,8 +78,6 @@ export class SSEUpdateService implements UpdateService {
       this.eventSource.close();
       this.eventSource = null;
     }
-
-    console.log('SSEUpdateService stopped');
   }
 
   isRunning(): boolean {
@@ -138,34 +127,19 @@ export class SSEUpdateService implements UpdateService {
     this.eventSource.addEventListener('conversation-update', (event) => {
       try {
         const conversation: Conversation = JSON.parse(event.data);
-        this.conversationCallbacks.forEach(callback => {
-          try {
-            callback(conversation);
-          } catch (error) {
-            console.error('Error in conversation callback:', error);
-          }
-        });
+        this.conversationCallbacks.forEach(callback => callback(conversation));
       } catch (error) {
-        console.error('Error parsing conversation update:', error);
+        console.error('SSE: Error parsing conversation update:', error);
       }
     });
 
     // Message updates
     this.eventSource.addEventListener('message-update', (event) => {
-      console.log('[SSE] Received message-update event:', event.data);
       try {
         const message: Message = JSON.parse(event.data);
-        console.log('[SSE] Parsed message:', message);
-        console.log('[SSE] Notifying', this.messageCallbacks.size, 'callbacks');
-        this.messageCallbacks.forEach(callback => {
-          try {
-            callback(message);
-          } catch (error) {
-            console.error('Error in message callback:', error);
-          }
-        });
+        this.messageCallbacks.forEach(callback => callback(message));
       } catch (error) {
-        console.error('Error parsing message update:', error);
+        console.error('SSE: Error parsing message update:', error);
       }
     });
 
@@ -173,55 +147,36 @@ export class SSEUpdateService implements UpdateService {
     this.eventSource.addEventListener('expert-queue-update', (event) => {
       try {
         const queue: ExpertQueue = JSON.parse(event.data);
-        this.expertQueueCallbacks.forEach(callback => {
-          try {
-            callback(queue);
-          } catch (error) {
-            console.error('Error in expert queue callback:', error);
-          }
-        });
+        this.expertQueueCallbacks.forEach(callback => callback(queue));
       } catch (error) {
-        console.error('Error parsing expert queue update:', error);
+        console.error('SSE: Error parsing expert queue update:', error);
       }
     });
 
     // Heartbeat (keep-alive)
     this.eventSource.addEventListener('heartbeat', () => {
-      // Just acknowledge connection is alive
-      console.log('[SSE] ❤️ Heartbeat received');
+      // Connection alive
     });
 
     // Connection opened
     this.eventSource.onopen = () => {
-      console.log('[SSE] ✅ Connection opened successfully!');
       this.notifyConnectionStatusChange({ connected: true });
     };
 
     // Error handling
-    this.eventSource.onerror = (error) => {
-      console.error('[SSE] ❌ Error occurred:', error);
-      console.error('[SSE] ReadyState:', this.eventSource?.readyState);
-      console.error('[SSE] ReadyState values: CONNECTING=0, OPEN=1, CLOSED=2');
+    this.eventSource.onerror = () => {
       this.notifyConnectionStatusChange({
         connected: false,
         error: 'Connection lost'
       });
 
-      // EventSource will automatically reconnect, but we should track the state
       if (this.eventSource?.readyState === EventSource.CLOSED) {
-        console.error('[SSE] Connection CLOSED permanently');
         this.isRunningFlag = false;
       }
     };
   }
 
   private notifyConnectionStatusChange(status: ConnectionStatus): void {
-    this.connectionStatusCallbacks.forEach(callback => {
-      try {
-        callback(status);
-      } catch (error) {
-        console.error('Error in connection status callback:', error);
-      }
-    });
+    this.connectionStatusCallbacks.forEach(callback => callback(status));
   }
 }

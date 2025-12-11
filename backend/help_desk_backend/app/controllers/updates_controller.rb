@@ -3,6 +3,9 @@ class UpdatesController < ApplicationController
 
     before_action :require_authentication
 
+    # Disable request logging for SSE stream to reduce log spam
+    around_action :silence_stream_logging, only: [:stream]
+
     # GET /api/conversations/updates
     def conversations
         user_id = params[:userId]
@@ -127,62 +130,43 @@ class UpdatesController < ApplicationController
 
     # GET /api/updates/stream - SSE endpoint for real-time updates
     def stream
-        Rails.logger.info "[SSE] Stream started for user: #{current_user.username} (ID: #{current_user.id})"
-
         response.headers['Content-Type'] = 'text/event-stream'
         response.headers['Cache-Control'] = 'no-cache'
-        response.headers['X-Accel-Buffering'] = 'no' # Disable nginx buffering
+        response.headers['X-Accel-Buffering'] = 'no'
 
         last_check = Time.current
 
         begin
             loop do
-                # Capture current time before checks to avoid missing updates during sleep
                 current_time = Time.current
 
-                # Wrap database queries in a block to release connection after use
                 ActiveRecord::Base.connection_pool.with_connection do
-                    # Check for conversation updates
+                    # Conversation updates
                     conversation_updates = get_conversation_updates_since(current_user, last_check)
-                    if conversation_updates.any?
-                        Rails.logger.info "[SSE] Found #{conversation_updates.count} conversation updates"
-                    end
                     conversation_updates.each do |conv|
                         write_sse_event('conversation-update', conversation_response(conv))
                     end
 
-                    # Check for message updates
+                    # Message updates
                     message_updates = get_message_updates_since(current_user, last_check)
-                    if message_updates.any?
-                        Rails.logger.info "[SSE] Found #{message_updates.count} message updates for user #{current_user.id}"
-                        message_updates.each do |msg|
-                            Rails.logger.info "[SSE] Message ID: #{msg.id}, Content: #{msg.content.truncate(50)}, Sender: #{msg.sender_id}"
-                        end
-                    end
                     message_updates.each do |msg|
                         write_sse_event('message-update', message_response(msg))
                     end
 
-                    # Check expert queue updates (if expert)
+                    # Expert queue updates
                     if current_user.expert?
                         queue_update = get_expert_queue_updates_since(current_user, last_check)
-                        if queue_update
-                            write_sse_event('expert-queue-update', queue_update)
-                        end
+                        write_sse_event('expert-queue-update', queue_update) if queue_update
                     end
                 end
 
-                # Update last_check to current time (captures all updates checked in this iteration)
                 last_check = current_time
-
-                # Send heartbeat
                 write_sse_event('heartbeat', {timestamp: Time.current.iso8601})
 
-                sleep 2 # Poll DB every 2 seconds
+                sleep 2
             end
         rescue IOError
             # Client disconnected
-            Rails.logger.info "SSE client disconnected: #{current_user.username}"
         ensure
             response.stream.close rescue nil
         end
@@ -237,10 +221,7 @@ class UpdatesController < ApplicationController
     def write_sse_event(event_name, data)
         response.stream.write("event: #{event_name}\n")
         response.stream.write("data: #{data.to_json}\n\n")
-        # ActionController::Live::Buffer doesn't support flush, writes are auto-flushed
-    rescue IOError => e
-        # Client disconnected
-        Rails.logger.debug "SSE write failed: #{e.message}"
+    rescue IOError
         raise
     end
 
@@ -278,6 +259,12 @@ class UpdatesController < ApplicationController
             }
         else
             nil
+        end
+    end
+
+    def silence_stream_logging
+        Rails.logger.silence do
+            yield
         end
     end
 
