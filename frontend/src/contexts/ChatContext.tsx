@@ -501,7 +501,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       updateService.offMessageUpdate(handleMessageUpdate);
       updateService.offExpertQueueUpdate(handleExpertQueueUpdate);
     };
-  }, [isServicesReady, updateService]);
+  }, [isServicesReady, updateService, user]);
 
   // Load initial data when services are ready
   useEffect(() => {

@@ -5,6 +5,7 @@ import type {
   ExpertQueue,
   ConnectionStatus,
 } from '@/types';
+import TokenManager from '@/services/TokenManager';
 
 interface SSEUpdateServiceConfig {
   baseUrl: string;
@@ -18,6 +19,7 @@ export class SSEUpdateService implements UpdateService {
   private config: SSEUpdateServiceConfig;
   private isRunningFlag: boolean = false;
   private eventSource: EventSource | null = null;
+  private tokenManager: TokenManager;
   private conversationCallbacks: Set<(conversation: Conversation) => void> =
     new Set();
   private messageCallbacks: Set<(message: Message) => void> = new Set();
@@ -27,6 +29,7 @@ export class SSEUpdateService implements UpdateService {
 
   constructor(config: SSEUpdateServiceConfig) {
     this.config = config;
+    this.tokenManager = TokenManager.getInstance();
   }
 
   async start(): Promise<void> {
@@ -35,10 +38,32 @@ export class SSEUpdateService implements UpdateService {
     }
 
     this.isRunningFlag = true;
-    this.notifyConnectionStatusChange({ connected: true });
 
-    // TODO: Implement SSE connection in future step
-    console.log('SSEUpdateService started');
+    const token = this.tokenManager.getToken();
+    if (!token) {
+      console.error('SSEUpdateService: No auth token available');
+      this.notifyConnectionStatusChange({
+        connected: false,
+        error: 'No authentication token'
+      });
+      return;
+    }
+
+    const url = `${this.config.baseUrl}/api/updates/stream?token=${encodeURIComponent(token)}`;
+
+    try {
+      this.eventSource = new EventSource(url, {
+        withCredentials: true
+      });
+
+      this.setupEventListeners();
+    } catch (error) {
+      console.error('SSEUpdateService: Failed to create connection:', error);
+      this.notifyConnectionStatusChange({
+        connected: false,
+        error: error instanceof Error ? error.message : 'Connection failed'
+      });
+    }
   }
 
   async stop(): Promise<void> {
@@ -53,8 +78,6 @@ export class SSEUpdateService implements UpdateService {
       this.eventSource.close();
       this.eventSource = null;
     }
-
-    console.log('SSEUpdateService stopped');
   }
 
   isRunning(): boolean {
@@ -97,13 +120,63 @@ export class SSEUpdateService implements UpdateService {
     this.connectionStatusCallbacks.delete(callback);
   }
 
-  private notifyConnectionStatusChange(status: ConnectionStatus): void {
-    this.connectionStatusCallbacks.forEach(callback => {
+  private setupEventListeners(): void {
+    if (!this.eventSource) return;
+
+    // Conversation updates
+    this.eventSource.addEventListener('conversation-update', (event) => {
       try {
-        callback(status);
+        const conversation: Conversation = JSON.parse(event.data);
+        this.conversationCallbacks.forEach(callback => callback(conversation));
       } catch (error) {
-        console.error('Error in connection status callback:', error);
+        console.error('SSE: Error parsing conversation update:', error);
       }
     });
+
+    // Message updates
+    this.eventSource.addEventListener('message-update', (event) => {
+      try {
+        const message: Message = JSON.parse(event.data);
+        this.messageCallbacks.forEach(callback => callback(message));
+      } catch (error) {
+        console.error('SSE: Error parsing message update:', error);
+      }
+    });
+
+    // Expert queue updates
+    this.eventSource.addEventListener('expert-queue-update', (event) => {
+      try {
+        const queue: ExpertQueue = JSON.parse(event.data);
+        this.expertQueueCallbacks.forEach(callback => callback(queue));
+      } catch (error) {
+        console.error('SSE: Error parsing expert queue update:', error);
+      }
+    });
+
+    // Heartbeat (keep-alive)
+    this.eventSource.addEventListener('heartbeat', () => {
+      // Connection alive
+    });
+
+    // Connection opened
+    this.eventSource.onopen = () => {
+      this.notifyConnectionStatusChange({ connected: true });
+    };
+
+    // Error handling
+    this.eventSource.onerror = () => {
+      this.notifyConnectionStatusChange({
+        connected: false,
+        error: 'Connection lost'
+      });
+
+      if (this.eventSource?.readyState === EventSource.CLOSED) {
+        this.isRunningFlag = false;
+      }
+    };
+  }
+
+  private notifyConnectionStatusChange(status: ConnectionStatus): void {
+    this.connectionStatusCallbacks.forEach(callback => callback(status));
   }
 }
