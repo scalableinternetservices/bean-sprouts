@@ -4,23 +4,22 @@ class MessagesController < ApplicationController
 
     # GET /conversations/:conversation_id/messages
     def index
-        # users can only see their own conversations
-        # conversation = Conversation.where(initiator_id: current_user.id)
-        #                 .or(Conversation.where(assigned_expert_id: current_user.id))
-        #                 .find_by(id: params[:conversation_id])
-        
-        # just kidding -- see Piazza post @65
         conversation = Conversation.find_by(id: params[:conversation_id])
 
-        unless conversation # conversation not found
-            render json: {
-                error: 'Conversation not found'
-            }, status: :not_found
+        unless conversation
+            render json: { error: 'Conversation not found' }, status: :not_found
             return
         end
 
-        messages = conversation.messages.order(created_at: :asc)
-        render json: messages.map { |m| message_response(m) }, status: :ok
+        cache_key = "messages:index:conversation:#{conversation.id}"
+
+        json_response = Rails.cache.fetch(cache_key, expires_in: 10.seconds) do
+            Rails.logger.info("[CACHE MISS] messages:index for conversation #{conversation.id}")
+            messages = conversation.messages.includes(:sender).order(created_at: :asc)
+            messages.map { |m| message_response(m) }
+        end
+
+        render json: json_response, status: :ok
     end
 
     # POST /messages
@@ -46,6 +45,11 @@ class MessagesController < ApplicationController
         )
 
         if message.save
+            # Invalidate caches on write
+            Rails.cache.delete("messages:index:conversation:#{conversation.id}")
+            Rails.cache.delete("conversations:index:user:#{conversation.initiator_id}")
+            Rails.cache.delete("conversations:index:user:#{conversation.assigned_expert_id}") if conversation.assigned_expert_id
+
             render json: message_response(message), status: :created
 
             # Trigger auto-FAQ responder (only on first message from initiator)

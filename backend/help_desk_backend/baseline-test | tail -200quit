@@ -1,0 +1,160 @@
+============= i-0c99ad4d686f76224 ==============
+----------------------------------------
+/var/log/puma/puma.log
+----------------------------------------
+=== puma startup: 2025-12-08 20:09:57 +0000 ===
+=== puma startup: 2025-12-08 20:09:57 +0000 ===
+[4241] - Worker 0 (PID: 4302) booted in 0.0s, phase: 0
+[4241] - Worker 1 (PID: 4306) booted in 0.0s, phase: 0
+[10c2c9a8-f68c-4db1-b1d6-8471ae35d9b0] Started GET "/" for 5.187.35.158 at 2025-12-08 21:02:41 +0000
+[10c2c9a8-f68c-4db1-b1d6-8471ae35d9b0]   
+[10c2c9a8-f68c-4db1-b1d6-8471ae35d9b0] ActionController::RoutingError (No route matches [GET] "/"):
+[10c2c9a8-f68c-4db1-b1d6-8471ae35d9b0]   
+[f26378bc-983c-430f-a36f-d23cda434326] Started POST "/" for 95.214.52.170 at 2025-12-08 21:26:51 +0000
+[f26378bc-983c-430f-a36f-d23cda434326]   
+[f26378bc-983c-430f-a36f-d23cda434326] ActionController::RoutingError (No route matches [POST] "/"):
+[f26378bc-983c-430f-a36f-d23cda434326]   
+
+
+----------------------------------------
+/var/log/web.stdout.log
+----------------------------------------
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] Puma starting in cluster mode...
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] * Puma version: 7.1.0 ("Neon Witch")
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] * Ruby version: ruby 3.4.7 (2025-10-08 revision 7a5688e2a2) +PRISM [x86_64-linux]
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] *  Min threads: 8
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] *  Max threads: 32
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] *  Environment: production
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] *   Master PID: 4241
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] *      Workers: 2
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] *     Restarts: (✔) hot (✖) phased (✖) refork
+Dec  8 20:09:52 ip-172-31-24-99 web[4241]: [4241] * Preloading application
+Dec  8 20:09:57 ip-172-31-24-99 web[4241]: [4241] * Listening on unix:///var/run/puma/my_app.sock
+Dec  8 20:09:57 ip-172-31-24-99 web[4241]: [4241] Use Ctrl-C to stop
+
+
+----------------------------------------
+/var/log/eb-engine.log
+----------------------------------------
+2025/12/08 20:09:50.727488 [INFO] Running command: /opt/aws/bin/cfn-init -s arn:aws:cloudformation:us-west-2:671946291905:stack/awseb-e-77zn67ehk8-stack/7fd8b6a0-d470-11f0-b736-02fff73b21e7 -r AWSEBAutoScalingGroup --region us-west-2 --configsets Infra-EmbeddedPostBuild
+2025/12/08 20:09:51.074469 [INFO] Finished executing the config set Infra-EmbeddedPostBuild.
+
+2025/12/08 20:09:51.074506 [INFO] Executing instruction: CleanEbExtensions
+2025/12/08 20:09:51.074656 [INFO] Cleaned ebextensions subdirectories from app staging directory.
+2025/12/08 20:09:51.074664 [INFO] Executing instruction: RunAppDeployPreDeployHooks
+2025/12/08 20:09:51.074751 [INFO] Executing platform hooks in .platform/hooks/predeploy/
+2025/12/08 20:09:51.074777 [INFO] The dir .platform/hooks/predeploy/ does not exist
+2025/12/08 20:09:51.074781 [INFO] Finished running scripts in /var/app/staging/.platform/hooks/predeploy
+2025/12/08 20:09:51.074787 [INFO] Executing instruction: stop X-Ray
+2025/12/08 20:09:51.074790 [INFO] stop X-Ray ...
+2025/12/08 20:09:51.074802 [INFO] Running command: systemctl show -p PartOf xray.service
+2025/12/08 20:09:51.089652 [WARN] stopProcess Warning: process xray is not registered 
+2025/12/08 20:09:51.089686 [INFO] Running command: systemctl stop xray.service
+2025/12/08 20:09:51.104694 [INFO] Executing instruction: stop proxy
+2025/12/08 20:09:51.104726 [INFO] Running command: systemctl show -p PartOf httpd.service
+2025/12/08 20:09:51.114621 [WARN] deregisterProcess Warning: process httpd is not registered, skipping...
+
+2025/12/08 20:09:51.114653 [INFO] Running command: systemctl show -p PartOf nginx.service
+2025/12/08 20:09:51.128992 [WARN] deregisterProcess Warning: process nginx is not registered, skipping...
+
+2025/12/08 20:09:51.129016 [INFO] Executing instruction: flip ruby application
+2025/12/08 20:09:51.129110 [INFO] Running command: ruby -v | cut -d ' ' -f 2
+2025/12/08 20:09:51.137329 [INFO] 3.4.7
+
+2025/12/08 20:09:51.137515 [INFO] Purge old process...
+2025/12/08 20:09:51.137531 [INFO] Removing /var/app/current/ if it exists
+2025/12/08 20:09:51.137539 [INFO] Renaming /var/app/staging/ to /var/app/current/
+2025/12/08 20:09:51.137555 [INFO] Register application processes...
+2025/12/08 20:09:51.137558 [INFO] Registering the proc: web
+
+2025/12/08 20:09:51.137567 [INFO] Running command: systemctl show -p PartOf web.service
+2025/12/08 20:09:51.150173 [INFO] Running command: systemctl daemon-reload
+2025/12/08 20:09:51.419112 [INFO] Running command: systemctl reset-failed
+2025/12/08 20:09:51.428620 [INFO] Running command: systemctl is-enabled eb-app.target
+2025/12/08 20:09:51.436549 [INFO] Copying file /opt/elasticbeanstalk/config/private/aws-eb.target to /etc/systemd/system/eb-app.target
+2025/12/08 20:09:51.437985 [INFO] Running command: systemctl enable eb-app.target
+2025/12/08 20:09:51.712659 [INFO] Created symlink /etc/systemd/system/multi-user.target.wants/eb-app.target → /etc/systemd/system/eb-app.target.
+
+2025/12/08 20:09:51.712692 [INFO] Running command: systemctl start eb-app.target
+2025/12/08 20:09:51.721913 [INFO] Running command: systemctl enable web.service
+2025/12/08 20:09:51.982785 [INFO] Created symlink /etc/systemd/system/multi-user.target.wants/web.service → /etc/systemd/system/web.service.
+
+2025/12/08 20:09:51.982817 [INFO] Running command: systemctl show -p PartOf web.service
+2025/12/08 20:09:51.994361 [INFO] Running command: systemctl is-active web.service
+2025/12/08 20:09:52.002074 [INFO] Running command: systemctl start web.service
+2025/12/08 20:09:52.068977 [INFO] Executing instruction: start X-Ray
+2025/12/08 20:09:52.069000 [INFO] X-Ray is not enabled.
+2025/12/08 20:09:52.069005 [INFO] Executing instruction: start proxy with new configuration
+2025/12/08 20:09:52.069029 [INFO] Running command: /usr/sbin/nginx -t -c /var/proxy/staging/nginx/nginx.conf
+2025/12/08 20:09:52.113919 [INFO] nginx: [warn] could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+nginx: the configuration file /var/proxy/staging/nginx/nginx.conf syntax is ok
+nginx: configuration file /var/proxy/staging/nginx/nginx.conf test is successful
+
+2025/12/08 20:09:52.114052 [INFO] Running command: cp -rp /var/proxy/staging/nginx/* /etc/nginx
+2025/12/08 20:09:52.121133 [INFO] Running command: systemctl show -p PartOf nginx.service
+2025/12/08 20:09:52.143587 [INFO] Running command: systemctl daemon-reload
+2025/12/08 20:09:52.585470 [INFO] Running command: systemctl reset-failed
+2025/12/08 20:09:52.595673 [INFO] Running command: systemctl show -p PartOf nginx.service
+2025/12/08 20:09:52.613116 [INFO] Running command: systemctl is-active nginx.service
+2025/12/08 20:09:52.627063 [INFO] Running command: systemctl start nginx.service
+2025/12/08 20:09:52.825904 [INFO] Executing instruction: configureSqsd
+2025/12/08 20:09:52.825922 [INFO] This is a web server environment instance, skip configure sqsd daemon ...
+2025/12/08 20:09:52.825927 [INFO] Executing instruction: startSqsd
+2025/12/08 20:09:52.825930 [INFO] This is a web server environment instance, skip start sqsd daemon ...
+2025/12/08 20:09:52.825933 [INFO] Executing instruction: Track pids in healthd
+2025/12/08 20:09:52.825942 [INFO] This is an enhanced health env...
+2025/12/08 20:09:52.825951 [INFO] Running command: systemctl show -p ConsistsOf aws-eb.target | cut -d= -f2
+2025/12/08 20:09:52.841250 [INFO] cfn-hup.service nginx.service healthd.service
+
+2025/12/08 20:09:52.841278 [INFO] Running command: systemctl show -p ConsistsOf eb-app.target | cut -d= -f2
+2025/12/08 20:09:52.856213 [INFO] web.service
+
+2025/12/08 20:09:52.856557 [INFO] Executing instruction: support rails logging
+2025/12/08 20:09:52.856573 [INFO] adding builtin Rails logging support
+2025/12/08 20:09:52.862608 [INFO] Executing instruction: RunAppDeployPostDeployHooks
+2025/12/08 20:09:52.862634 [INFO] Executing platform hooks in .platform/hooks/postdeploy/
+2025/12/08 20:09:52.862659 [INFO] The dir .platform/hooks/postdeploy/ does not exist
+2025/12/08 20:09:52.862663 [INFO] Finished running scripts in /var/app/current/.platform/hooks/postdeploy
+2025/12/08 20:09:52.862668 [INFO] Executing cleanup logic
+2025/12/08 20:09:52.862768 [INFO] CommandService Response: {"status":"SUCCESS","api_version":"1.0","results":[{"status":"SUCCESS","msg":"Engine execution has succeeded.","returncode":0,"events":[{"msg":"Instance deployment completed successfully.","timestamp":1765224592862,"severity":"INFO"}]}]}
+
+2025/12/08 20:09:52.862910 [INFO] Platform Engine finished execution on command: app-deploy
+
+2025/12/08 21:32:36.957104 [INFO] Starting...
+2025/12/08 21:32:36.957165 [INFO] Starting EBPlatform-PlatformEngine
+2025/12/08 21:32:36.957190 [INFO] reading event message file
+2025/12/08 21:32:36.957567 [INFO] Engine received EB command cfn-hup-exec
+
+2025/12/08 21:32:37.107306 [INFO] Running command: /opt/aws/bin/cfn-get-metadata -s arn:aws:cloudformation:us-west-2:671946291905:stack/awseb-e-77zn67ehk8-stack/7fd8b6a0-d470-11f0-b736-02fff73b21e7 -r AWSEBAutoScalingGroup --region us-west-2
+2025/12/08 21:32:37.411148 [INFO] Running command: /opt/aws/bin/cfn-get-metadata -s arn:aws:cloudformation:us-west-2:671946291905:stack/awseb-e-77zn67ehk8-stack/7fd8b6a0-d470-11f0-b736-02fff73b21e7 -r AWSEBBeanstalkMetadata --region us-west-2
+2025/12/08 21:32:37.715382 [INFO] checking whether command tail-log is applicable to this instance...
+2025/12/08 21:32:37.715393 [INFO] this command is applicable to the instance, thus instance should execute command
+2025/12/08 21:32:37.715396 [INFO] Engine command: (tail-log)
+
+2025/12/08 21:32:37.715445 [INFO] Executing instruction: GetTailLogs
+2025/12/08 21:32:37.715449 [INFO] Tail Logs...
+2025/12/08 21:32:37.717440 [INFO] Running command: tail -n 100 /var/log/puma/puma.log
+2025/12/08 21:32:37.719417 [INFO] Running command: tail -n 100 /var/log/web.stdout.log
+2025/12/08 21:32:37.721535 [INFO] Running command: tail -n 100 /var/log/eb-engine.log
+
+
+----------------------------------------
+/var/log/eb-hooks.log
+----------------------------------------
+
+
+----------------------------------------
+/var/log/nginx/access.log
+----------------------------------------
+5.187.35.158 - - [08/Dec/2025:21:02:41 +0000] "GET / HTTP/1.1" 404 0 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.85 Safari/537.36 Edg/90.0.818.46" "-"
+95.214.52.170 - - [08/Dec/2025:21:26:51 +0000] "POST / HTTP/1.1" 404 0 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" "-"
+
+
+----------------------------------------
+/var/log/nginx/error.log
+----------------------------------------
+2025/12/08 20:09:52 [warn] 4246#4246: could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+2025/12/08 20:09:52 [warn] 4283#4283: could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+2025/12/08 20:09:52 [warn] 4284#4284: could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+
+

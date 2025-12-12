@@ -30,3 +30,13 @@
 
 # Ignore key files for decrypting credentials and more.
 /config/*.key
+
+# Bin nonsense
+/bin/*
+
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+

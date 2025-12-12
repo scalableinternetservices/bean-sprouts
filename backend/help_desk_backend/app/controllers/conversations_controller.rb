@@ -3,12 +3,18 @@ class ConversationsController < ApplicationController
 
     # GET /conversations
     def index
-        # get conversations where uesr is initiator or assigned expert
-        conversations = Conversation.where(initiator_id: current_user.id)
-                        .or(Conversation.where(assigned_expert_id: current_user.id))
-                        .order(updated_at: :desc)
-        
-        render json: conversations.map { |c| conversation_response(c) }, status: :ok
+        cache_key = "conversations:index:user:#{current_user.id}"
+
+        json_response = Rails.cache.fetch(cache_key, expires_in: 10.seconds) do
+            Rails.logger.info("[CACHE MISS] conversations:index for user #{current_user.id}")
+            conversations = Conversation.where(initiator_id: current_user.id)
+                            .or(Conversation.where(assigned_expert_id: current_user.id))
+                            .includes(:initiator, :assigned_expert, :messages)
+                            .order(updated_at: :desc)
+            conversations.map { |c| conversation_response(c) }
+        end
+
+        render json: json_response, status: :ok
     end
 
     # GET /conversations/:id
