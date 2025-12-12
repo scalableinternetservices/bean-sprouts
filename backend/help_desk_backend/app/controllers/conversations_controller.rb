@@ -41,7 +41,10 @@ class ConversationsController < ApplicationController
         if conversation.save
             # Try to auto-assign an expert using the LLM. If this fails for any reason,
             # we fall back to the normal "unassigned / waiting" flow.
-            AutoExpertAssigner.call(conversation)
+            # AutoExpertAssigner.call(conversation)
+
+            # enqueue background job instead of blocking
+            AutoExpertAssignerJob.perform_later(conversation.id)
 
             render json: conversation_response(conversation), status: :created
         else
