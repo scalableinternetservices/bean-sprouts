@@ -3,9 +3,6 @@ class UpdatesController < ApplicationController
 
     before_action :require_authentication
 
-    # Disable request logging for SSE stream to reduce log spam
-    around_action :silence_stream_logging, only: [:stream]
-
     # GET /api/conversations/updates
     def conversations
         user_id = params[:userId]
@@ -134,6 +131,8 @@ class UpdatesController < ApplicationController
         response.headers['Cache-Control'] = 'no-cache'
         response.headers['X-Accel-Buffering'] = 'no'
 
+        Rails.logger.info "[SSE] Client connected: #{current_user.username}"
+
         last_check = Time.current
 
         begin
@@ -163,10 +162,13 @@ class UpdatesController < ApplicationController
                 last_check = current_time
                 write_sse_event('heartbeat', {timestamp: Time.current.iso8601})
 
-                sleep 2
+                sleep 5
             end
         rescue IOError
-            # Client disconnected
+            Rails.logger.info "[SSE] Client disconnected: #{current_user.username}"
+        rescue => e
+            Rails.logger.error "[SSE] Error for #{current_user.username}: #{e.message}"
+            Rails.logger.error e.backtrace.join("\n")
         ensure
             response.stream.close rescue nil
         end
@@ -229,43 +231,40 @@ class UpdatesController < ApplicationController
         Conversation.where(initiator_id: user.id)
                    .or(Conversation.where(assigned_expert_id: user.id))
                    .where('updated_at > ?', since_time)
+                   .includes(:initiator, :assigned_expert, :messages)
                    .order(updated_at: :desc)
     end
 
     def get_message_updates_since(user, since_time)
-        user_conversation_ids = Conversation.where(initiator_id: user.id)
-                                           .or(Conversation.where(assigned_expert_id: user.id))
-                                           .pluck(:id)
-
-        Message.where(conversation_id: user_conversation_ids)
-              .where('created_at > ?', since_time)
-              .order(created_at: :asc)
+        Message.where(
+            conversation_id: Conversation.where(initiator_id: user.id)
+                                        .or(Conversation.where(assigned_expert_id: user.id))
+                                        .select(:id)
+        ).where('created_at > ?', since_time)
+         .includes(:sender)
+         .order(created_at: :asc)
     end
 
     def get_expert_queue_updates_since(user, since_time)
         waiting = Conversation.where(status: 'waiting')
                              .where('updated_at > ?', since_time)
+                             .includes(:initiator, :assigned_expert, :messages)
                              .order(created_at: :asc)
+                             .to_a
 
         assigned = Conversation.where(assigned_expert_id: user.id)
                               .where(status: 'active')
                               .where('updated_at > ?', since_time)
+                              .includes(:initiator, :assigned_expert, :messages)
                               .order(last_message_at: :desc)
+                              .to_a
 
-        if waiting.any? || assigned.any?
-            {
-                waitingConversations: waiting.map {|c| conversation_response(c) },
-                assignedConversations: assigned.map {|c| conversation_response(c) }
-            }
-        else
-            nil
-        end
-    end
+        return nil if waiting.empty? && assigned.empty?
 
-    def silence_stream_logging
-        Rails.logger.silence do
-            yield
-        end
+        {
+            waitingConversations: waiting.map {|c| conversation_response(c) },
+            assignedConversations: assigned.map {|c| conversation_response(c) }
+        }
     end
 
 end

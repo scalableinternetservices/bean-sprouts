@@ -443,33 +443,46 @@ export function ChatProvider({ children }: ChatProviderProps) {
     };
 
     const handleMessageUpdate = (message: Message) => {
+      // Skip messages from current user (already added optimistically by sendMessage)
+      if (message.senderId === user?.id) {
+        return;
+      }
+
       setMessages(prev => {
         const existingMessages = prev[message.conversationId] || [];
 
-        // Check if message already exists (by ID) - prevent duplicates
+        // Check if message already exists (by ID)
         const messageExists = existingMessages.some(m => m.id === message.id);
 
         if (messageExists) {
-          // Message already exists, don't add duplicate
-          return prev;
+          // Check if the message content has actually changed
+          const existingMessage = existingMessages.find(
+            m => m.id === message.id
+          );
+          if (existingMessage && existingMessage.content === message.content) {
+            // Message content hasn't changed, return previous state to avoid re-render
+            return prev;
+          }
+
+          // Message content changed, update it
+          return {
+            ...prev,
+            [message.conversationId]: existingMessages.map(m =>
+              m.id === message.id ? message : m
+            ),
+          };
+        } else {
+          // Add new message (insert in chronological order)
+          const updatedMessages = [...existingMessages, message].sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+
+          return {
+            ...prev,
+            [message.conversationId]: updatedMessages,
+          };
         }
-
-        // Add new message only if from another user
-        // (current user's messages are already added by sendMessage)
-        if (message.senderId === user?.id) {
-          return prev;
-        }
-
-        // Add new message (insert in chronological order)
-        const updatedMessages = [...existingMessages, message].sort(
-          (a, b) =>
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
-
-        return {
-          ...prev,
-          [message.conversationId]: updatedMessages,
-        };
       });
     };
 
@@ -488,7 +501,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       updateService.offMessageUpdate(handleMessageUpdate);
       updateService.offExpertQueueUpdate(handleExpertQueueUpdate);
     };
-  }, [isServicesReady, updateService]);
+  }, [isServicesReady, updateService, user]);
 
   // Load initial data when services are ready
   useEffect(() => {
